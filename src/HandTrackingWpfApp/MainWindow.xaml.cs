@@ -1,12 +1,12 @@
+using System.Windows; // Ensure this is present for System.Windows.Window
 using HandTrackingWpfApp.Services;
 using HandTrackingWpfApp.Utils;
 using OpenCvSharp;
-using System.Windows;
 using System.Windows.Threading;
 
 namespace HandTrackingWpfApp;
 
-public partial class MainWindow : Window
+public partial class MainWindow : System.Windows.Window // Fully qualify to resolve ambiguity
 {
     private readonly CameraCaptureService _cameraService = new();
     private readonly IHandTracker _handTracker = new MediaPipeHandTracker();
