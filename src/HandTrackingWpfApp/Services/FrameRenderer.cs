@@ -16,9 +16,10 @@ public sealed class FrameRenderer
         [17, 18, 19, 20]
     ];
 
-    private static readonly Scalar BodyColor = new(175, 155, 142); // #8E9BAF in BGR
-    private static readonly Scalar HaloColor = new(232, 212, 199); // #C7D4E8 in BGR
-    private static readonly Scalar LandmarkColor = new(245, 245, 245);
+    private static readonly Scalar BodyColor = new(26, 26, 26);
+    private static readonly Scalar HaloColor = new(66, 66, 66);
+    private static readonly Scalar LandmarkColor = new(210, 210, 210);
+    private static readonly Scalar BackgroundColor = new(242, 242, 242);
 
     private readonly Dictionary<string, SmoothedHandState> _smoothedHands = new(StringComparer.OrdinalIgnoreCase);
     private readonly GhostRenderSettings _settings;
@@ -35,16 +36,19 @@ public sealed class FrameRenderer
             return sourceBgr.Clone();
         }
 
-        var composed = sourceBgr.Clone();
+        var composed = _settings.ShowCameraFeed
+            ? sourceBgr.Clone()
+            : new Mat(sourceBgr.Size(), MatType.CV_8UC3, BackgroundColor);
         using var bodyMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
         using var handMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
 
         foreach (var hand in trackingResult.Hands)
         {
+            handMask.SetTo(Scalar.All(0));
+
             var smoothedPoints = SmoothHand(hand);
             var framePoints = ToFramePoints(smoothedPoints, sourceBgr.Size());
 
-            //using var handMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
             DrawPalm(handMask, framePoints);
             DrawFingers(handMask, framePoints, sourceBgr.Size());
 
@@ -53,7 +57,10 @@ public sealed class FrameRenderer
             Cv2.MorphologyEx(handMask, handMask, MorphTypes.Open, morphologyKernel);
 
             Cv2.Max(bodyMask, handMask, bodyMask);
-            DrawLandmarks(composed, framePoints, hand.Handedness);
+            if (_settings.LandmarkSize > 0)
+            {
+                DrawLandmarks(composed, framePoints, hand.Handedness);
+            }
         }
 
         using var bodySoftMask = new Mat();
