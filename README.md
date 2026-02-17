@@ -74,3 +74,7 @@ To enable production-grade two-hand landmark tracking, make sure the required Me
   - Verify matching x64 native dependencies.
   - Verify model file paths and graph configuration for your package version.
 
+## Rendering style roadmap
+
+- See `docs/stylized-hand-rendering-plan.md` for a concrete plan to evolve the current overlay into a VR-like ghost hand rendering style.
+
