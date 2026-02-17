@@ -36,14 +36,15 @@ public sealed class FrameRenderer
         }
 
         var composed = sourceBgr.Clone();
-        using var bodyMask = Mat.Zeros(sourceBgr.Size(), MatType.CV_8UC1);
+        using var bodyMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
+        using var handMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
 
         foreach (var hand in trackingResult.Hands)
         {
             var smoothedPoints = SmoothHand(hand);
             var framePoints = ToFramePoints(smoothedPoints, sourceBgr.Size());
 
-            using var handMask = Mat.Zeros(sourceBgr.Size(), MatType.CV_8UC1);
+            //using var handMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
             DrawPalm(handMask, framePoints);
             DrawFingers(handMask, framePoints, sourceBgr.Size());
 
