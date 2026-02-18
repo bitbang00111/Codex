@@ -35,25 +35,40 @@ public sealed class FrameRenderer
             return sourceBgr.Clone();
         }
 
-        var composed = sourceBgr.Clone();
+        var composed = _settings.ShowCameraBackground
+            ? sourceBgr.Clone()
+            : new Mat(sourceBgr.Size(), MatType.CV_8UC3, Scalar.All(0));
+
         using var bodyMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
         using var handMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
+        using var morphologyKernel = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(5, 5));
 
         foreach (var hand in trackingResult.Hands)
         {
+            handMask.SetTo(Scalar.All(0));
+
             var smoothedPoints = SmoothHand(hand);
             var framePoints = ToFramePoints(smoothedPoints, sourceBgr.Size());
 
-            //using var handMask = new Mat(sourceBgr.Size(), MatType.CV_8UC1, Scalar.All(0));
-            DrawPalm(handMask, framePoints);
-            DrawFingers(handMask, framePoints, sourceBgr.Size());
+            if (framePoints.Length >= 21)
+            {
+                DrawPalm(handMask, framePoints);
+                DrawFingers(handMask, framePoints, sourceBgr.Size());
+            }
+            else
+            {
+                DrawContourFallback(handMask, framePoints);
+            }
 
-            using var morphologyKernel = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(5, 5));
             Cv2.MorphologyEx(handMask, handMask, MorphTypes.Close, morphologyKernel);
             Cv2.MorphologyEx(handMask, handMask, MorphTypes.Open, morphologyKernel);
 
             Cv2.Max(bodyMask, handMask, bodyMask);
-            DrawLandmarks(composed, framePoints, hand.Handedness);
+
+            if (_settings.ShowLandmarks || _settings.ShowHandednessLabel)
+            {
+                DrawLandmarks(composed, framePoints, hand.Handedness);
+            }
         }
 
         using var bodySoftMask = new Mat();
@@ -144,14 +159,33 @@ public sealed class FrameRenderer
         }
     }
 
-    private void DrawLandmarks(Mat target, IReadOnlyList<Point> points, string handedness)
+    private static void DrawContourFallback(Mat mask, IReadOnlyList<Point> points)
     {
-        foreach (var point in points)
+        if (points.Count < 3)
         {
-            Cv2.Circle(target, point, _settings.LandmarkSize, LandmarkColor, -1, LineTypes.AntiAlias);
+            return;
         }
 
-        if (points.Count == 0)
+        var hull = Cv2.ConvexHull(points);
+        if (hull.Length < 3)
+        {
+            return;
+        }
+
+        Cv2.FillConvexPoly(mask, hull, Scalar.White, LineTypes.AntiAlias);
+    }
+
+    private void DrawLandmarks(Mat target, IReadOnlyList<Point> points, string handedness)
+    {
+        if (_settings.ShowLandmarks)
+        {
+            foreach (var point in points)
+            {
+                Cv2.Circle(target, point, _settings.LandmarkSize, LandmarkColor, -1, LineTypes.AntiAlias);
+            }
+        }
+
+        if (!_settings.ShowHandednessLabel || points.Count == 0)
         {
             return;
         }
