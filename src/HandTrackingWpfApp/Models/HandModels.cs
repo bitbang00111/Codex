@@ -20,6 +20,12 @@ public sealed class GhostRenderSettings
 
     public bool EnableGhostStyle { get; init; } = true;
 
+    public bool ShowCameraBackground { get; init; } = false;
+
+    public bool ShowLandmarks { get; init; } = false;
+
+    public bool ShowHandednessLabel { get; init; } = false;
+
     public float BodyOpacity { get; init; } = 0.5f;
 
     public float HaloOpacity { get; init; } = 0.28f;
